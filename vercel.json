@@ -2,7 +2,7 @@
   "version": 2,
   "functions": {
     "api/hook.js": {
-      "runtime": "edge"
+      "runtime": "nodejs18.x"
     }
   }
 }
