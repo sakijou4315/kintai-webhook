@@ -13,14 +13,16 @@ export default async function handler(req, res) {
     const timestamp = record.timestamp.value;
     const latitude = record.latitude.value;
     const longitude = record.longitude.value;
-    const date = timestamp.split('T')[0];
+    const date = timestamp.split('T')[0]; // "2025-04-22"
 
     const mapUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
     const CHECK_APP_ID = '102';
     const API_TOKEN = 'UoPIPpmmYpVx23QMMOqhSzb69wTfTNvvxpr7Phr9';
 
-    const query = `user_name = "${userName}" and date = "${date}"`;
+    // ✅ クエリをDATE()で正確に比較！
+    const query = `user_name = "${userName}" and date = DATE("${date}")`;
+
     const getResp = await fetch(`https://rsg5nfiqkddo.cybozu.com/k/v1/records.json?app=${CHECK_APP_ID}&query=${encodeURIComponent(query)}`, {
       method: 'GET',
       headers: {
@@ -58,6 +60,7 @@ export default async function handler(req, res) {
     }
 
     if (existing) {
+      // 🔄 更新
       await fetch('https://rsg5nfiqkddo.cybozu.com/k/v1/record.json', {
         method: 'PUT',
         headers: {
@@ -72,6 +75,7 @@ export default async function handler(req, res) {
       });
       console.log('🔄 チェックボードレコードを更新しました');
     } else {
+      // 🆕 新規作成
       await fetch('https://rsg5nfiqkddo.cybozu.com/k/v1/record.json', {
         method: 'POST',
         headers: {
