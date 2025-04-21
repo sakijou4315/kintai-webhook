@@ -35,7 +35,13 @@ export default async function handler(req, res) {
     const existing = records[0];
 
     const updateFields = {};
-    const timeOnly = new Date(timestamp).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const jstDate = new Date(new Date(timestamp).getTime() + 9 * 60 * 60 * 1000);
+    const timeOnly = jstDate.toLocaleTimeString('ja-JP', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+
 
     if (type === '出勤') {
       updateFields.clock_in_time = { value: timeOnly };
