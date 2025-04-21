@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
     const record = body.record;
     const userName = record.user_name.value;
-    const employeeCode = record.kviewer_lookup.value.trim(); // ← trim追加で万全！
+    const employeeCode = record.kviewer_lookup.value.trim();
     const type = record.type.value;
     const timestamp = record.timestamp.value;
     const latitude = record.latitude.value;
@@ -21,7 +21,6 @@ export default async function handler(req, res) {
     const CHECK_APP_ID = '102';
     const API_TOKEN = 'UoPIPpmmYpVx23QMMOqhSzb69wTfTNvvxpr7Phr9';
 
-    // 🎯 最終形クエリ（完全一致＋最新1件）
     const query = `kviewer_lookup = "${employeeCode}" and date = "${date}" order by $id desc limit 1`;
     console.log('🔍 クエリ:', query);
 
@@ -36,21 +35,22 @@ export default async function handler(req, res) {
     const existing = records[0];
 
     const updateFields = {};
+    const timeOnly = new Date(timestamp).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
 
     if (type === '出勤') {
-      updateFields.clock_in = { value: timestamp };
+      updateFields.clock_in_time = { value: timeOnly };
       updateFields.clock_in_lat = { value: Number(latitude) };
       updateFields.clock_in_lon = { value: Number(longitude) };
       updateFields.clock_in_map = { value: mapUrl };
     } else if (type === '退勤') {
-      updateFields.clock_out = { value: timestamp };
+      updateFields.clock_out_time = { value: timeOnly };
       updateFields.clock_out_lat = { value: Number(latitude) };
       updateFields.clock_out_lon = { value: Number(longitude) };
       updateFields.clock_out_map = { value: mapUrl };
     }
 
-    const hasIn = type === '出勤' || (existing && existing.clock_in && existing.clock_in.value);
-    const hasOut = type === '退勤' || (existing && existing.clock_out && existing.clock_out.value);
+    const hasIn = type === '出勤' || (existing && existing.clock_in_time && existing.clock_in_time.value);
+    const hasOut = type === '退勤' || (existing && existing.clock_out_time && existing.clock_out_time.value);
 
     if (hasIn && hasOut) {
       updateFields.status = { value: '正常' };
@@ -61,7 +61,6 @@ export default async function handler(req, res) {
     }
 
     if (existing) {
-      // 🔄 更新
       const updateResp = await fetch('https://rsg5nfiqkddo.cybozu.com/k/v1/record.json', {
         method: 'PUT',
         headers: {
@@ -77,7 +76,6 @@ export default async function handler(req, res) {
       const updateResult = await updateResp.json();
       console.log('✅ 更新結果:', updateResult);
     } else {
-      // 🆕 新規作成
       const postResp = await fetch('https://rsg5nfiqkddo.cybozu.com/k/v1/record.json', {
         method: 'POST',
         headers: {
