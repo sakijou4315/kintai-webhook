@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
     const record = body.record;
     const userName = record.user_name.value;
-    const employeeCode = record.kviewer_lookup.value;
+    const employeeCode = record.kviewer_lookup.value.trim(); // ← trim追加で万全！
     const type = record.type.value;
     const timestamp = record.timestamp.value;
     const latitude = record.latitude.value;
@@ -21,20 +21,19 @@ export default async function handler(req, res) {
     const CHECK_APP_ID = '102';
     const API_TOKEN = 'UoPIPpmmYpVx23QMMOqhSzb69wTfTNvvxpr7Phr9';
 
-    const query = `kviewer_lookup = "${employeeCode}" and date like "${date}"`;
+    // 🎯 最終形クエリ（完全一致＋最新1件）
+    const query = `kviewer_lookup = "${employeeCode}" and date = "${date}" order by $id desc limit 1`;
+    console.log('🔍 クエリ:', query);
 
     const getResp = await fetch(`https://rsg5nfiqkddo.cybozu.com/k/v1/records.json?app=${CHECK_APP_ID}&query=${encodeURIComponent(query)}`, {
       method: 'GET',
       headers: {
-        'X-Cybozu-API-Token': API_TOKEN,
-        'Content-Type': 'application/json',
+        'X-Cybozu-API-Token': API_TOKEN
       }
     });
 
-    const found = await getResp.json();
-    console.log('🧾 検索結果:', found);
-
-    const existing = found.records && found.records.length > 0 ? found.records[0] : null;
+    const { records = [] } = await getResp.json();
+    const existing = records[0];
 
     const updateFields = {};
 
@@ -62,7 +61,7 @@ export default async function handler(req, res) {
     }
 
     if (existing) {
-      // 🔄 更新処理（ログ付き）
+      // 🔄 更新
       const updateResp = await fetch('https://rsg5nfiqkddo.cybozu.com/k/v1/record.json', {
         method: 'PUT',
         headers: {
@@ -75,16 +74,8 @@ export default async function handler(req, res) {
           record: updateFields
         })
       });
-
       const updateResult = await updateResp.json();
-      console.log('🔄 更新結果:', updateResult);
-
-      if (updateResp.ok) {
-        console.log('✅ チェックボードレコードを更新しました');
-      } else {
-        console.error('❌ 更新失敗！新規作成にフォールバック:', updateResult);
-        throw new Error('Update failed');
-      }
+      console.log('✅ 更新結果:', updateResult);
     } else {
       // 🆕 新規作成
       const postResp = await fetch('https://rsg5nfiqkddo.cybozu.com/k/v1/record.json', {
@@ -103,9 +94,8 @@ export default async function handler(req, res) {
           }
         })
       });
-
       const postResult = await postResp.json();
-      console.log('🆕 チェックボードレコードを作成しました:', postResult);
+      console.log('🆕 新規作成結果:', postResult);
     }
 
     res.status(200).json({ message: 'Check board updated successfully!' });
