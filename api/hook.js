@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     const API_TOKEN = 'UoPIPpmmYpVx23QMMOqhSzb69wTfTNvvxpr7Phr9';
 
     // ✅ クエリを修正：kviewer_lookup + DATE(date)
-    const query = `kviewer_lookup = "${employeeCode}" and date = DATE("${date}")`;
+    const query = `kviewer_lookup = "${employeeCode}" and date like "${date}"`;
 
     const getResp = await fetch(`https://rsg5nfiqkddo.cybozu.com/k/v1/records.json?app=${CHECK_APP_ID}&query=${encodeURIComponent(query)}`, {
       method: 'GET',
